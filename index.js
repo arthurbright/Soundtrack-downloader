@@ -88,6 +88,7 @@ function getUrl(str, callback){
         res.on('end', ()=>{
             //data finished sending
             let data = JSON.parse(resStr);
+            console.log(data);
             if(data.items && data.items.length != 0){
                 let finalUrl = 'https://www.youtube.com/watch?v=' + data.items[0].id.videoId;
                 let name = data.items[0].snippet.title;
