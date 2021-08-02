@@ -8,6 +8,7 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 const bodyParser = require('body-parser');
+const archiver = require('archiver');
 
 //initialize app
 const app = express();
@@ -29,10 +30,43 @@ app.post("/test", (req, res)=>{
 //the folder will be zipped and sent and then deleted.
 let id = 0;
 
-app.post("/songs", (req, res)=>{
+app.post("/songs", async (req, res)=>{
     let songs = req.body.paragraph.split("\r\n");
-    console.log(songs);
-    res.send("hi");
+    id += 1;
+    let curId = id; //store a local copy because this function is async
+
+    //create folder to store playlist
+    if(!fs.existsSync('./public/storage/' + curId)){
+        fs.mkdirSync('./public/storage/' + curId);
+    }
+
+    for(let i = 0; i < songs.length; i ++){
+        //get each song file
+        
+        let status = await getSongFile(songs[i], curId);
+        if(status == 1){
+            console.log("downloaded " + songs[i]);
+        }
+    }
+    
+    //after downloading is done, zip it and send
+    const output = fs.createWriteStream(__dirname + '/public/storage/playlist' + curId + '.zip');
+    const archive = archiver('zip');
+
+    output.on('close', ()=>{
+        console.log('done zipping!');
+        res.sendFile(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'));
+        //todo delete files
+    });
+
+    archive.on('error', (err)=>{
+        throw err;
+    });
+
+    archive.pipe(output);
+    archive.directory('./public/storage/' + curId + "/", false);
+    archive.finalize();
+
 });
 
 
@@ -41,7 +75,7 @@ app.post("/songs", (req, res)=>{
 
 
 
-
+//searches song name on youtube
 function getUrl(str, callback){
     let url = 'https://youtube.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q='
     url = url + str + "&type=video&key=" + apiKey;
@@ -56,10 +90,11 @@ function getUrl(str, callback){
             let data = JSON.parse(resStr);
             if(data.items && data.items.length != 0){
                 let finalUrl = 'https://www.youtube.com/watch?v=' + data.items[0].id.videoId;
-                callback(finalUrl);
+                let name = data.items[0].snippet.title;
+                callback({url: finalUrl, name: name});
             }
             else{
-                callback(0);
+                callback({url: 0});
             }
             
         })
@@ -68,13 +103,26 @@ function getUrl(str, callback){
     
 }
 
-function getSongFile(searchStr, callback){
-    getUrl(searchStr, (url)=>{
-        ytdl(url, {filter: "audioonly"}).pipe(fs.createWriteStream('./public/test.mp3')).on("close", ()=>{
-            callback('test.mp3');
-        });
+//retrieves song file
+function getSongFile(searchStr, folderId){
+    let promise = new Promise((res, rej)=>{
+        getUrl(searchStr, (ress)=>{ //res: {url, name}
+            if(ress.url == 0){
+                rej("video not found");
+                return;
+            }
+            //trim ress.name of illegal characters
+            let trimmed = ress.name.split("|").join('');
+            trimmed = trimmed.split('/').join('');
+            trimmed = trimmed.split('&quot;').join('');
+            ytdl(ress.url, {filter: "audioonly"}).pipe(fs.createWriteStream('./public/storage/' + folderId + "/" + trimmed + '.mp3')).on("close", ()=>{
+                res(1);
+            });
 
+        });
     });
+    return promise;
+    
 }
 
 const PORT = process.env.PORT || 3000
