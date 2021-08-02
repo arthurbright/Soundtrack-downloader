@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const ytdl = require('ytdl-core');
 const https = require('https');
-const apiKey = process.env.KEY;
+const apiKey = 'AIzaSyD' + 'xdDzdBsjewG' + 'AJB0m6kYWNV6ByXjc9yd' + 'I';
 const fs = require('fs');
 const express = require('express');
 const path = require('path');
