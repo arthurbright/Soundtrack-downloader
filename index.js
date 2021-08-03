@@ -9,6 +9,7 @@ const path = require('path');
 const http = require('http');
 const bodyParser = require('body-parser');
 const archiver = require('archiver');
+const ytsr = require('ytsr');
 
 //initialize app
 const app = express();
@@ -19,12 +20,17 @@ app.use("/", express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-//debug thing
+//debug apis
 app.post("/test", (req, res)=>{
     getSongFile("revenge minecraft", ()=>{
         res.sendFile(path.join(__dirname, "/public/test.mp3"));
     });
 });
+app.get("/debug", (req, res)=>{
+    getUrl2("revenge minecraft", ()=>{
+
+    })
+})
 
 //download songs. each download package will have a unique id and a folder with that id;
 //the folder will be zipped and sent and then deleted.
@@ -53,12 +59,23 @@ app.post("/songs", async (req, res)=>{
     const output = fs.createWriteStream(__dirname + '/public/storage/playlist' + curId + '.zip');
     const archive = archiver('zip');
 
+    //after zipping is done
     output.on('close', ()=>{
-        console.log('done zipping!');
-        res.sendFile(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'));
-        //todo delete files
+        
+        res.sendFile(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'), (err)=>{
+            if(err){
+                console.log("error in sending file");
+            }
+            else{
+                //delete files
+                fs.unlinkSync(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'));
+                fs.rmdirSync(path.join(__dirname, '/public/storage/' + curId), { recursive: true });
+            }
+        });
     });
 
+
+    //additional zipping code
     archive.on('error', (err)=>{
         throw err;
     });
@@ -75,7 +92,7 @@ app.post("/songs", async (req, res)=>{
 
 
 
-//searches song name on youtube
+//searches song name on youtube (ratelimited)
 function getUrl(str, callback){
     let url = 'https://youtube.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q='
     url = url + str + "&type=video&key=" + apiKey;
@@ -104,10 +121,25 @@ function getUrl(str, callback){
     
 }
 
+//unlimited string to url function
+async function getUrl2(str, callback){
+    let filters = await ytsr.getFilters(str);
+    let filter = filters.get('Type').get('Video');
+    
+    let res = await ytsr(filter.url, {limit: '1'});
+    if(res.items.length > 0){
+        callback({url: res.items[0].url, name: res.items[0].title});
+    }
+    else{
+        callback({url: 0});
+    }
+    
+}
+
 //retrieves song file
 function getSongFile(searchStr, folderId){
     let promise = new Promise((res, rej)=>{
-        getUrl(searchStr, (ress)=>{ //res: {url, name}
+        getUrl2(searchStr, (ress)=>{ //res: {url, name}
             if(ress.url == 0){
                 rej("video not found");
                 return;
