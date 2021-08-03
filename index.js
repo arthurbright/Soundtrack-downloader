@@ -42,8 +42,8 @@ app.post("/songs", async (req, res)=>{
     let curId = id; //store a local copy because this function is async
 
     //create folder to store playlist
-    if(!fs.existsSync('./public/storage/' + curId)){
-        fs.mkdirSync('./public/storage/' + curId);
+    if(!fs.existsSync(__dirname + '/public/storage/' + curId)){
+        fs.mkdirSync(__dirname + '/public/storage/' + curId);
     }
 
     for(let i = 0; i < songs.length; i ++){
