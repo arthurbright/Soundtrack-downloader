@@ -1,4 +1,4 @@
-require('dotenv').config();
+//require('dotenv').config();
 
 const ytdl = require('ytdl-core');
 const https = require('https');
