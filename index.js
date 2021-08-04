@@ -10,6 +10,7 @@ const http = require('http');
 const bodyParser = require('body-parser');
 const archiver = require('archiver');
 const ytsr = require('ytsr');
+const Spotify = require('spotify-web-api-node');
 
 //initialize app
 const app = express();
@@ -20,6 +21,19 @@ app.use("/", express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
+//initialize spotify client
+const spotifyClient = new Spotify({
+    clientId: '2f8e7031be82498b843166a287dba04e',
+    clientSecret: '89aabbbe28704d7' + 'd96b0943e' + '60f8f5ba'
+});
+spotifyClient.clientCredentialsGrant().then((data)=>{
+    // Save the access token so that it's used in future calls
+    spotifyClient.setAccessToken(data.body['access_token']);
+}, (err)=>{
+    console.log('Error retrieving access token', err);
+})
+
+
 //debug apis
 app.post("/test", (req, res)=>{
     getSongFile("revenge minecraft", ()=>{
@@ -27,10 +41,14 @@ app.post("/test", (req, res)=>{
     });
 });
 app.get("/debug", (req, res)=>{
-    getUrl2("revenge minecraft", ()=>{
-
+    spotifyClient.getPlaylist('3kJyzqpKHQTyJ1blyxsO4D').then( (data)=>{
+        console.log(data.body.tracks.items[0].track.name);
+        res.send('this is debug page');
+    }, (err)=>{
+        console.log('Error retrieving spotify playlist!');
+        console.log(err);
     })
-})
+});
 
 //download songs. each download package will have a unique id and a folder with that id;
 //the folder will be zipped and sent and then deleted.
@@ -62,7 +80,63 @@ app.post("/songs", async (req, res)=>{
     //after zipping is done
     output.on('close', ()=>{
         
-        res.sendFile(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'), (err)=>{
+        res.download(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'), 'myPlaylist.zip', (err)=>{
+            if(err){
+                console.log("error in sending file");
+            }
+            else{
+                //delete files
+                fs.unlinkSync(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'));
+                fs.rmdirSync(path.join(__dirname, '/public/storage/' + curId), { recursive: true });
+            }
+        });
+    });
+
+
+    //additional zipping code
+    archive.on('error', (err)=>{
+        throw err;
+    });
+
+    archive.pipe(output);
+    archive.directory('./public/storage/' + curId + "/", false);
+    archive.finalize();
+
+});
+
+app.post("/spotifysongs", async (req, res)=>{
+    let link = req.body.spotifyLink;
+    id += 1;
+    let curId = id; //store a local copy because this function is async
+
+    //create folder to store playlist
+    if(!fs.existsSync(__dirname + '/public/storage/' + curId)){
+        fs.mkdirSync(__dirname + '/public/storage/' + curId);
+    }
+
+    //only get the playlist ID from the entire playlist URL
+    let playlistId = link.split('/playlist/')[1];
+
+    //retrieve playlist
+    let data = await spotifyClient.getPlaylist(playlistId);
+    //download songs
+    for(let i = 0; i < data.body.tracks.items.length; i ++){
+        //get each song file
+        console.log('--started downloading ' + data.body.tracks.items[i].track.name);
+        let status = await getSongFile(data.body.tracks.items[i].track.name, curId);
+        if(status == 1){
+            console.log("downloaded " + data.body.tracks.items[i].track.name);
+        }
+    }
+    
+    //after downloading is done, zip it and send
+    const output = fs.createWriteStream(__dirname + '/public/storage/playlist' + curId + '.zip');
+    const archive = archiver('zip');
+
+    //after zipping is done
+    output.on('close', ()=>{
+        
+        res.download(path.join(__dirname, '/public/storage/playlist' + curId + '.zip'), 'myPlaylist.zip', (err)=>{
             if(err){
                 console.log("error in sending file");
             }
@@ -148,6 +222,10 @@ function getSongFile(searchStr, folderId){
             let trimmed = ress.name.split("|").join('');
             trimmed = trimmed.split('/').join('');
             trimmed = trimmed.split('&quot;').join('');
+            trimmed = trimmed.split("(").join('');
+            trimmed = trimmed.split(")").join('');
+            trimmed = trimmed.split("'").join('');
+            trimmed = trimmed.split('"').join('');
             ytdl(ress.url, {filter: "audioonly"}).pipe(fs.createWriteStream('./public/storage/' + folderId + "/" + trimmed + '.mp3')).on("close", ()=>{
                 res(1);
             });
