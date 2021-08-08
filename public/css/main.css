@@ -1,0 +1,31 @@
+body{
+    background-color: #383838;
+}
+
+p{
+    text-align: center;
+    color: white;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+}
+
+.centerImage{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 30%;
+}
+
+form{
+    text-align: center;
+}
+
+input{
+    font-family: 'Trebuchet MS'
+}
+
+.submitButton{
+    background-color: #02a37e;
+    border: none;
+    color: white;
+    text-align: center
+}

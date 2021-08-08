@@ -5,19 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel='icon' type = 'image/png' href = 'https://lh3.googleusercontent.com/proxy/vXvfGdyclYrkx7QyrTUPC52lWBBONT9eHQmqzwlRpEEM88qIM6TENe_R0CjAB8WjBT5QpVY9swhzRtNTaM1CeUmO'>
     <title>Sbotify</title>
+    <link rel="stylesheet" href = "css/main.css">
 </head>
 <body>
+
+    <img src="Sbotify.png" alt="Logo" class = "centerImage">
+
+
+
     <p>Input the URL to your Spotify playlist below to download it!</p>
     <form action="/spotifysongs" method = "post" id = "spotifyForm">
         <input type="text" id = "spotifyLink" name = "spotifyLink">
-        <input type="submit" value = "Download">
+        <p></p>
+        <input type="submit" value = "Download" class = "submitButton">
     </form>
     
     <p>Alternatively, input song names below, one per line. Artist names are not necessary unless the song name is ambiguous.</p>
     <p>(Put the artist names if you want to be safe)</p>
     <form action = "/songs" method = "post" id = "songForm">
-        <textarea id = "paragraph" name = "paragraph" rows = "30" cols = "100" form = "songForm">butter</textarea>
-        <input type = "submit" value = "Download">
+        <textarea id = "paragraph" name = "paragraph" rows = "30" cols = "40" form = "songForm">butter</textarea>
+        <p></p>
+        <input type = "submit" value = "Download" class = "submitButton">
     </form>
 
     <script src = "js/main.js"></script>
