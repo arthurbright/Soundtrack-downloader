@@ -22,6 +22,9 @@ form{
 input{
     font-family: 'Trebuchet MS'
 }
+textarea{
+    font-family: 'Trebuchet MS'
+}
 
 .submitButton{
     background-color: #02a37e;
