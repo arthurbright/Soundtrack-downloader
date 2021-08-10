@@ -105,6 +105,10 @@ app.post("/songs", async (req, res)=>{
 });
 
 app.post("/spotifysongs", async (req, res)=>{
+    console.log('NEW PLAYLIST BEING CONSTRUCTED*******************************')
+    console.log(Date.now());
+
+
     let link = req.body.spotifyLink;
     id += 1;
     let curId = id; //store a local copy because this function is async
@@ -122,11 +126,20 @@ app.post("/spotifysongs", async (req, res)=>{
     //download songs
     for(let i = 0; i < data.body.tracks.items.length; i ++){
         //get each song file
-        console.log('--started downloading ' + data.body.tracks.items[i].track.name);
-        let status = await getSongFile(data.body.tracks.items[i].track.name, curId);
+        console.log('>> started downloading ' + data.body.tracks.items[i].track.name);
+       
+        let status = await getSongFile(data.body.tracks.items[i].track.name + " " + data.body.tracks.items[i].track.artists[0].name , curId);
         if(status == 1){
-            console.log("downloaded " + data.body.tracks.items[i].track.name);
+            console.log(">> downloaded " + data.body.tracks.items[i].track.name);
         }
+        else if(status == 0){
+            i -= 1;
+            console.log('***YTDL timed out. Retrying...')
+        }
+        else if(status == 2){
+            console.log('***403 miniget error. Retrying...');
+        }   
+       
     }
     
     //after downloading is done, zip it and send
@@ -146,6 +159,7 @@ app.post("/spotifysongs", async (req, res)=>{
                 fs.rmdirSync(path.join(__dirname, '/public/storage/' + curId), { recursive: true });
             }
         });
+        
     });
 
 
@@ -160,7 +174,9 @@ app.post("/spotifysongs", async (req, res)=>{
 
 });
 
-
+app.get('/download', (req, res) =>{
+    res.send('hi');
+});
 
 
 
@@ -197,6 +213,8 @@ function getUrl(str, callback){
 
 //unlimited string to url function
 async function getUrl2(str, callback){
+
+    console.log('GETURL TIME');
     let filters = await ytsr.getFilters(str);
     let filter = filters.get('Type').get('Video');
     
@@ -226,9 +244,27 @@ function getSongFile(searchStr, folderId){
             trimmed = trimmed.split(")").join('');
             trimmed = trimmed.split("'").join('');
             trimmed = trimmed.split('"').join('');
-            ytdl(ress.url, {filter: "audioonly"}).pipe(fs.createWriteStream('./public/storage/' + folderId + "/" + trimmed + '.mp3')).on("close", ()=>{
-                res(1);
+           
+            try{
+                console.log('YTDL TIME');
+                ytdl(ress.url, {filter: "audioonly"}).pipe(fs.createWriteStream('./public/storage/' + folderId + "/" + trimmed + '.mp3')).on("close", ()=>{
+                    res(1);
+                });
+            }catch(err){
+                res(2);
+            }
+            
+
+            //timeout and retry if over 9 seconds
+            let timer = new Promise((resolve, reject) => {
+                setTimeout(() => {
+                  resolve('timeout');
+                }, 5000);
             });
+            timer.then((val)=>{
+                res(0);
+            })
+            
 
         });
     });
