@@ -1,28 +1,26 @@
 const ytdl = require('ytdl-core');
-const https = require('https');
-const apiKey = 'AIzaSyD' + 'xdDzdBsjewG' + 'AJB0m6kYWNV6ByXjc9yd' + 'I';
 const fs = require('fs');
 const {readFileSync, promises: fsPromises} = require('fs');
 const path = require('path');
 const ytsr = require('ytsr');
 
-
 //=======================================================================================
 //                               CUSTOMIZABLES
-const songListFile = "jpop";
-//=======================================================================================
-const songs = readFileSync(songListFile, 'utf-8').split(/\r?\n/);
+const songListFile = "listOfSongs";
 const directory = __dirname + '/' + songListFile + "PLAYLIST";
+//=======================================================================================
 
+const songs = readFileSync(songListFile, 'utf-8').split(/\r?\n/);
 downloadPlaylist();
-
-
 
 async function downloadPlaylist(){
     //create folder to store playlist
     if(!fs.existsSync(directory)){
         fs.mkdirSync(directory);
     }
+
+    let success = 0;
+    let fail = 0;
 
     for(let i = 0; i < songs.length; i ++){
         //get each song file
@@ -33,16 +31,20 @@ async function downloadPlaylist(){
         let status = await getSongFile(songs[i], directory, i);
         if(status == 0){
             console.log(">> [" + i + "]: Success.");
+            success += 1;
         }
-        else if(status == 2){
-            console.log("!! [" + i + "]: FAILURE: DOWNLOAD TIMED OUT.");
+        else{
+            failure += 1;
         }
     }
+
+    console.log("=============================================================");
+    console.log("Downloaded: " + success + "      Failed: " + fail);
 }
 
 //unratelimited string to url function
 async function getUrl2(ind, str){
-    console.log("[" + ind + "]: Started. Fetching URL: " + "(str)");
+    console.log("[" + ind + "]: Started. Fetching URL: " + "("+ str + ")");
     let filters = await ytsr.getFilters(str);
     let filter = filters.get('Type').get('Video');
     
@@ -79,8 +81,4 @@ async function getSongFile(searchStr, dir, ind){
         console.log(err);
         return 1;
     }
-    
-    //wait up to 15 seconds to finish downloading
-    await new Promise(resolve => setTimeout(resolve, 15000));
-    return 2;
 }
