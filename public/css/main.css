@@ -2,6 +2,12 @@ body{
     background-color: #383838;
 }
 
+h1{
+    text-align: center;
+    color: white;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+}
+
 p{
     text-align: center;
     color: white;
@@ -31,4 +37,8 @@ textarea{
     border: none;
     color: white;
     text-align: center
+}
+
+.wide{
+    width: 500px
 }

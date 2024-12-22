@@ -6,7 +6,7 @@ const ytsr = require('ytsr');
 
 //=======================================================================================
 //                               CUSTOMIZABLES
-const songListFile = "listOfSongs";
+const songListFile = "shortlist";
 const directory = __dirname + '/' + songListFile + "PLAYLIST";
 //=======================================================================================
 
